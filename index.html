@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>3D 鐳射卡牌鑄造所</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+:root{--bg:#0b1220;--ink:#e8eefc;--mute:#8d9bb8;--line:#25324d;--panel:#111a2e;--c1:#e8403a;--c2:#ff9a6b;--rx:0deg;--ry:0deg;--flip:0deg;--mx:50%;--my:50%}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:radial-gradient(1200px 700px at 20% 0%,#16294d 0,var(--bg) 60%) fixed;color:var(--ink);font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;min-height:100vh}
+[data-theme=red]{--c1:#e8403a;--c2:#ff9a6b}
+[data-theme=gold]{--c1:#c99a1a;--c2:#fff0a8}
+[data-theme=blue]{--c1:#2a6df4;--c2:#7fe0ff}
+[data-theme=green]{--c1:#1f9d6b;--c2:#b8f5a6}
+[data-theme=purple]{--c1:#7a3df0;--c2:#f0a6ff}
+header{padding:18px 22px 6px}
+header h1{margin:0;font-size:1.35rem;letter-spacing:.04em}
+header p{margin:4px 0 0;color:var(--mute);font-size:.9rem}
+main{display:grid;grid-template-columns:minmax(340px,1fr) minmax(340px,1fr);gap:24px;padding:16px 22px 40px;max-width:1100px;margin:auto}
+@media(max-width:820px){main{grid-template-columns:1fr}}
+.stage{display:flex;flex-direction:column;align-items:center;gap:14px;position:sticky;top:10px;align-self:start}
+@media(max-width:820px){.stage{position:static}}
+.scene{perspective:1100px;width:min(340px,86vw);aspect-ratio:63/88;touch-action:pan-y}
+.card{position:relative;width:100%;height:100%;transform-style:preserve-3d;transform:rotateX(var(--rx)) rotateY(calc(var(--ry) + var(--flip)));transition:transform .5s cubic-bezier(.2,.8,.2,1);will-change:transform}
+.card.live{transition:transform .08s linear}
+.face{position:absolute;inset:0;border-radius:5.5% / 4%;overflow:hidden;backface-visibility:hidden;-webkit-backface-visibility:hidden;box-shadow:0 22px 50px #000a,0 0 0 6px #1b1b1f inset}
+.front{background:linear-gradient(160deg,var(--c2),var(--c1) 70%);color:#14161c;padding:5.5% 6%;display:flex;flex-direction:column;gap:2.2%}
+.back{transform:rotateY(180deg);background:radial-gradient(circle at 50% 40%,var(--c1),#0a0e18 75%);display:grid;place-items:center;color:#fff;text-align:center}
+.back .logo{width:46%;aspect-ratio:1;border-radius:50%;border:3px solid #fff8;display:grid;place-items:center;font-size:2.4rem;background:conic-gradient(from 0deg,var(--c1),var(--c2),var(--c1));box-shadow:0 0 40px var(--c2)}
+.back small{display:block;margin-top:14px;opacity:.85;letter-spacing:.2em}
+.row{display:flex;align-items:baseline;justify-content:space-between;gap:6px}
+.name{font-size:1.25rem;font-weight:800;min-width:0}
+.hp{font-weight:800;color:#a30f0f;white-space:nowrap}
+.art{flex:0 0 38%;border-radius:6px;border:3px solid #f6e7b4;background:radial-gradient(circle at 30% 30%,#fff8,#0000 40%),linear-gradient(135deg,#0d1b3d,var(--c1));background-size:cover;background-position:center;display:grid;place-items:center;font-size:3rem;overflow:hidden}
+.mv{background:#fffc;border-radius:6px;padding:2.2% 3%;font-size:.74rem;line-height:1.4}
+.mv b{font-size:.84rem}
+.mv .dmg{float:right;font-weight:800;font-size:.95rem}
+.mv .cost{display:inline-block;background:#14161c;color:#fff;border-radius:99px;padding:0 7px;margin-right:5px;font-size:.68rem}
+.mv.ult{background:#14161ce6;color:#fff}
+.mv.ult .cost{background:#fff;color:#14161c}
+.foot{display:flex;justify-content:space-between;font-size:.7rem;font-weight:700;margin-top:auto}
+.meta{display:flex;justify-content:space-between;font-size:.62rem;opacity:.8}
+[contenteditable]{outline:none;border-radius:3px;cursor:text}
+[contenteditable]:focus{background:#fff6;box-shadow:0 0 0 2px #fff9}
+.foil,.glare{position:absolute;inset:0;pointer-events:none;border-radius:inherit}
+.foil{mix-blend-mode:color-dodge;opacity:.55;background-size:260% 260%;background-position:var(--mx) var(--my);transition:opacity .3s}
+[data-foil=cosmic] .foil{background-image:linear-gradient(115deg,#ff0080,#ff8c00,#ffe600,#00ff9d,#00b7ff,#8a2be2,#ff0080)}
+[data-foil=aurora] .foil{background-image:linear-gradient(120deg,#0ff0,#2cf5c8 20%,#6a5cff 45%,#d86bff 60%,#2cf5c8 80%,#0ff0)}
+[data-foil=gold] .foil{background-image:repeating-linear-gradient(105deg,#0000 0 6px,#ffd76a 6px 8px,#0000 8px 16px),linear-gradient(135deg,#3a2a00,#d9a520 50%,#3a2a00);opacity:.5}
+.glare{background:radial-gradient(circle at var(--mx) var(--my),#fffc,#fff0 45%);mix-blend-mode:overlay;opacity:.8}
+.tools{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+button,select,input,textarea{font:inherit}
+button{background:var(--c1);color:#fff;border:0;border-radius:8px;padding:9px 14px;cursor:pointer;font-weight:700}
+button.alt{background:#24314f}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--c2);outline-offset:2px}
+.hint{color:var(--mute);font-size:.8rem;text-align:center;margin:0}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:6px 16px 16px}
+fieldset{border:0;border-top:1px solid var(--line);margin:0;padding:12px 0 4px;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+fieldset:first-of-type{border-top:0}
+legend{padding:0 8px 0 0;font-weight:700;color:var(--c2)}
+label{display:grid;gap:4px;font-size:.78rem;color:var(--mute)}
+label.w{grid-column:1/-1}
+input,select,textarea{background:#0b1220;color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%}
+textarea{resize:vertical;min-height:52px}
+.exporting .card{transform:none!important;transition:none!important}
+.exporting .face{box-shadow:none}
+.exporting .back{transform:none}
+.exporting:not(.flipped) .back,.exporting.flipped .front{display:none}
+.exporting .face{backface-visibility:visible}
+@media(prefers-reduced-motion:reduce){.card{transition:none}}
+</style>
+</head>
+<body>
+<header>
+  <h1>3D 鐳射卡牌鑄造所</h1>
+  <p>左邊看卡牌，右邊改數值；點卡面文字也能直接編輯。</p>
+</header>
+<main>
+  <section class="stage" aria-label="卡牌預覽">
+    <div class="scene" id="scene" data-theme="red" data-foil="cosmic">
+      <div class="card" id="card">
+        <div class="face front" id="front">
+          <div class="row"><span class="name" contenteditable data-k="name"></span><span class="hp">HP <span contenteditable data-k="hp"></span></span></div>
+          <div class="art" id="art">🐉</div>
+          <div class="mv"><span class="dmg" contenteditable data-k="pd"></span><b contenteditable data-k="pn"></b><br><span contenteditable data-k="pt"></span></div>
+          <div class="mv"><span class="dmg" contenteditable data-k="m1d"></span><span class="cost" data-k="m1c"></span><b contenteditable data-k="m1n"></b><br><span contenteditable data-k="m1t"></span></div>
+          <div class="mv ult"><span class="dmg" contenteditable data-k="m2d"></span><span class="cost" data-k="m2c"></span><b contenteditable data-k="m2n"></b><br><span contenteditable data-k="m2t"></span></div>
+          <div class="foot"><span>弱點 <span contenteditable data-k="weak"></span></span><span>抗性 <span contenteditable data-k="res"></span></span></div>
+          <div class="meta"><span>Illus. <span contenteditable data-k="creator"></span></span><span><span data-k="rar"></span> <span contenteditable data-k="num"></span></span></div>
+          <div class="foil"></div><div class="glare"></div>
+        </div>
+        <div class="face back" id="back">
+          <div><div class="logo">✦</div><small>HOLO CARD</small></div>
+          <div class="foil"></div><div class="glare"></div>
+        </div>
+      </div>
+    </div>
+    <div class="tools">
+      <button id="flip" class="alt">翻面 180°</button>
+      <button id="gyro" class="alt">啟用陀螺儀</button>
+      <button id="export">匯出 PNG</button>
+    </div>
+    <p class="hint">滑鼠移過卡面或傾斜手機，可看到光澤與彩虹反射。</p>
+  </section>
+
+  <section class="panel" aria-label="卡牌設定">
+    <fieldset><legend>核心屬性</legend>
+      <label>角色名稱<input data-in="name"></label>
+      <label>HP<input data-in="hp" inputmode="numeric"></label>
+      <label>主題色系<select data-in="theme"><option value="red">創發紅</option><option value="gold">科技金</option><option value="blue">深海藍</option><option value="green">森林綠</option><option value="purple">星雲紫</option></select></label>
+      <label>箔膜類型<select data-in="foil"><option value="cosmic">宇宙彩虹</option><option value="aurora">極光全息</option><option value="gold">黑金浮雕</option></select></label>
+      <label class="w">立繪圖片（可不傳，會用預設圖示）<input type="file" id="file" accept="image/*"></label>
+    </fieldset>
+    <fieldset><legend>技能與戰鬥</legend>
+      <label>被動特性<input data-in="pn"></label>
+      <label>被動效果數值<input data-in="pd"></label>
+      <label class="w">被動說明<textarea data-in="pt"></textarea></label>
+      <label>普通招式<input data-in="m1n"></label>
+      <label>威力<input data-in="m1d"></label>
+      <label>能量消耗<input data-in="m1c"></label>
+      <label class="w">招式說明<textarea data-in="m1t"></textarea></label>
+      <label>奧義技能<input data-in="m2n"></label>
+      <label>威力<input data-in="m2d"></label>
+      <label>能量消耗<input data-in="m2c"></label>
+      <label class="w">奧義說明<textarea data-in="m2t"></textarea></label>
+    </fieldset>
+    <fieldset><legend>對抗與印記</legend>
+      <label>弱點<input data-in="weak"></label>
+      <label>抗性<input data-in="res"></label>
+      <label>創作者署名<input data-in="creator"></label>
+      <label>認證編號<input data-in="num"></label>
+      <label>稀有度<select data-in="rar"><option>C</option><option>U</option><option>R</option><option>SR</option><option>UR</option><option>SEC</option></select></label>
+    </fieldset>
+  </section>
+</main>
+<script>
+const S={name:'烈焰創發龍',hp:'180',theme:'red',foil:'cosmic',pn:'被動：餘燼護體',pd:'-10',pt:'每回合開始時，回復 10 點 HP。',
+m1n:'火花衝擊',m1d:'40',m1c:'1',m1t:'對對手造成傷害，並附加灼燒。',
+m2n:'創世烈焰',m2d:'120',m2c:'3',m2t:'丟棄 2 張能量卡，對全體敵人造成傷害。',
+weak:'水 ×2',res:'草 -20',creator:'你的名字',num:'001/100',rar:'SR'};
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const scene=$('#scene'),card=$('#card');
+function render(skip){
+  $$('[data-k]').forEach(el=>{if(el!==skip&&el!==document.activeElement)el.textContent=S[el.dataset.k]});
+  $$('[data-in]').forEach(el=>{if(el!==document.activeElement)el.value=S[el.dataset.in]});
+  scene.dataset.theme=S.theme;scene.dataset.foil=S.foil;
+}
+$$('[data-in]').forEach(el=>el.addEventListener('input',()=>{S[el.dataset.in]=el.value;render(el)}));
+$$('[contenteditable]').forEach(el=>{
+  el.addEventListener('input',()=>{S[el.dataset.k]=el.textContent;render(el)});
+  el.addEventListener('keydown',e=>{if(e.key==='Enter')e.preventDefault()});
+});
+$('#file').addEventListener('change',e=>{
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();r.onload=()=>{const a=$('#art');a.style.backgroundImage=`url(${r.result})`;a.textContent=''};r.readAsDataURL(f);
+});
+function tilt(x,y,live){
+  card.classList.toggle('live',live);
+  scene.style.setProperty('--rx',((0.5-y)*26).toFixed(1)+'deg');
+  scene.style.setProperty('--ry',((x-0.5)*26).toFixed(1)+'deg');
+  scene.style.setProperty('--mx',(x*100).toFixed(1)+'%');
+  scene.style.setProperty('--my',(y*100).toFixed(1)+'%');
+}
+scene.addEventListener('pointermove',e=>{const r=scene.getBoundingClientRect();tilt((e.clientX-r.left)/r.width,(e.clientY-r.top)/r.height,true)});
+scene.addEventListener('pointerleave',()=>tilt(.5,.5,false));
+let flipped=false;
+$('#flip').onclick=()=>{flipped=!flipped;scene.style.setProperty('--flip',flipped?'180deg':'0deg')};
+let gyroOn=false;
+function onOri(e){if(e.beta==null)return;
+  const x=Math.min(1,Math.max(0,.5+(e.gamma||0)/60)),y=Math.min(1,Math.max(0,.5+((e.beta||0)-45)/60));tilt(x,y,true)}
+$('#gyro').onclick=async()=>{
+  if(gyroOn){window.removeEventListener('deviceorientation',onOri);gyroOn=false;$('#gyro').textContent='啟用陀螺儀';tilt(.5,.5,false);return}
+  try{
+    if(typeof DeviceOrientationEvent!=='undefined'&&DeviceOrientationEvent.requestPermission){
+      if(await DeviceOrientationEvent.requestPermission()!=='granted')return}
+    window.addEventListener('deviceorientation',onOri);gyroOn=true;$('#gyro').textContent='關閉陀螺儀';
+  }catch(err){alert('此裝置無法使用陀螺儀，請改用滑鼠或觸控。')}
+};
+$('#export').onclick=async()=>{
+  if(!window.html2canvas){alert('匯出功能需要網路載入 html2canvas，請連線後重試。');return}
+  if(document.activeElement)document.activeElement.blur();
+  scene.classList.add('exporting');scene.classList.toggle('flipped',flipped);
+  try{
+    const c=await html2canvas(flipped?$('#back'):$('#front'),{scale:3,backgroundColor:null,useCORS:true});
+    const a=document.createElement('a');a.download=(S.name||'card')+'.png';a.href=c.toDataURL('image/png');a.click();
+  }catch(err){alert('匯出失敗：'+err.message)}
+  scene.classList.remove('exporting');
+};
+render();
+</script>
+</body>
+</html>
